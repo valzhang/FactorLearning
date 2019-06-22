@@ -5,7 +5,7 @@ import datetime
 int2time = lambda x: datetime.datetime.strptime(str(x), "%Y%m%d")
 
 dl_path = 'H:\\DL\\data'
-model_name = 'model_hs300.h5'
+model_name = 'dl2_win.h5'
 use_short = False
 GetFileName = lambda x: os.path.join(dl_path, x)
 factor_list = pd.read_csv(GetFileName("factor_list.csv"), names=['FACTOR_NAME', 'NEU_TYPE'])
@@ -41,14 +41,24 @@ holding = holding.fillna(method='ffill').fillna(0)
 ret = pd.read_csv(GetFileName('RAW_RETURN.csv'), index_col=[0]).loc[from_date:to_date]
 daily_ret = (holding * ret).fillna(0).sum(axis=1)
 exc = daily_ret - hs300_ret
+print ((exc.mean()+1)**(250/len(exc))-1, 250**0.5*exc.mean()/exc.std())
 pnl = (exc + 1).cumprod()
 # exc.to_csv("D:\\test.csv")
 from matplotlib import pyplot as plt
 import seaborn as sns
 sns.set_style("whitegrid")
-
-import numpy as np
-
 plt.xticks(ticks=range(len(pnl)), labels=pnl.index)
 plt.plot(pnl.values)
 plt.show()
+x = range(len(pnl))
+y1 = pnl.values
+myfig = plt.figure(21)
+ax1 = myfig.add_axes([1, 1, 3, 3])
+ax1.plot(x, y1, label='pnl')
+ax1.legend(loc='upper left', fontsize=8)
+first_index = []
+for i, j in zip(range(len(pnl)-1), range(1, len(pnl))):
+    if pnl.index[j] - pnl.index[i] > 50:
+        first_index.append(j)
+ax1.set_xticks(first_index)
+ax1.set_xticklabels(pnl.index[first_index])
