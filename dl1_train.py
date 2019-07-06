@@ -21,14 +21,13 @@ def Ret2Tag(data, use_short):
     return tag
 
 
-dl_path = 'H:\\DL\\data'
-model_name = 'model_hs300.h5'
+dl_path = 'D:\\DL_data'
 GetFileName = lambda x: os.path.join(dl_path, x)
 
 uni_name = '000300.SH'
-model_name = 'model_hs300'
-use_short = False
-label_num = 2
+model_name = 'dl1.h5'
+use_short = True
+label_num = 3
 from_date = 20060101
 to_date = 20190501
 train_last_date = 20180101
@@ -53,4 +52,4 @@ model.compile(optimizer=tf.train.AdamOptimizer(0.001),
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 model.fit(train_data, train_label, epochs=100, batch_size=1000)
-model.save(GetFileName('%s.h5' % model_name))
+model.save(GetFileName(model_name))

@@ -4,7 +4,7 @@ import tensorflow as tf
 import datetime
 import numpy as np
 int2time = lambda x: datetime.datetime.strptime(str(x), "%Y%m%d")
-from_date = 20180101
+from_date = 20060101
 to_date = 20190501
 
 def GeneratePoolData(csv_path):
@@ -23,8 +23,8 @@ def GeneratePoolData(csv_path):
     return pool_data
 
 dl_path = 'H:\\DL\\data'
-model_name = 'dl2_win.h5'
-use_short = False
+model_name = 'dl3_ls.h5'
+use_short = True
 GetFileName = lambda x: os.path.join(dl_path, x)
 factor_list = pd.read_csv(GetFileName("factor_list.csv"), names=['FACTOR_NAME', 'NEU_TYPE'])
 all_df = pd.read_pickle(GetFileName('all_data.pkl'), compression='gzip').dropna()
@@ -35,17 +35,18 @@ zz500_ret = pd.read_csv(GetFileName('INDEX_000905.SH_RETURN.csv'), index_col=[0]
 GetUniverse = lambda uni, x: uni.columns[uni.loc[x]].tolist()
 trade_dt = [x for x in all_tradedates if (x >= from_date) & (x < to_date)]
 factor_dt = [trade_dt[0]] + [y for x, y in zip(trade_dt[:-1], trade_dt[1:]) if int(x / 100) != int(y / 100)]
+factor_dt = trade_dt
 holding = pd.DataFrame(index=trade_dt, columns=stock_code)
 model = tf.keras.models.load_model(GetFileName(model_name))
 import time
 t_1 = time.time()
-for date in factor_dt:
+for date in factor_dt[:-2]:
     t_2 = time.time()
     s = GetUniverse(all_pool, date)
     d_df = all_df.loc[all_df['FACTOR_DATE'] == date].set_index('STOCK_CODE').loc[s].reset_index()
     input_data = d_df[factor_list['FACTOR_NAME']].values
     tag_pro = model.predict(input_data)
-    tag = pd.DataFrame(tag_pro.argmax(axis=1), index=d_df['STOCK_CODE'], columns=['TAG'])
+    tag = pd.DataFrame(tag_pro.argmax(axis=1), index=d_df['STOCK_CODE'], columns=['TAG']) - 1
     if use_short:
         tag[tag['TAG'] < 0] = tag[tag['TAG'] < 0] / tag[tag['TAG'] < 0].abs().sum()
     tag[tag['TAG'] > 0] = tag[tag['TAG'] > 0] / tag[tag['TAG'] > 0].abs().sum()
@@ -54,12 +55,18 @@ for date in factor_dt:
     t_3 = time.time()
     print(date, t_3-t_2, t_3-t_1)
 holding = holding.fillna(method='ffill').fillna(0)
+turnover = (holding.shift(1) - holding).fillna(0).abs().sum(axis=1)
 ret = pd.read_csv(GetFileName('RAW_RETURN.csv'), index_col=[0]).loc[from_date:to_date]
 daily_ret = (holding * ret).fillna(0).sum(axis=1)
-exc = daily_ret - zz500_ret
+if use_short:
+    exc = daily_ret
+else:
+    exc = daily_ret - zz500_ret
+
 print ((exc.mean()+1)**(250/len(exc))-1, 250**0.5*exc.mean()/exc.std())
 pnl = (exc + 1).cumprod()
-# exc.to_csv("D:\\test.csv")
+exc.to_csv(GetFileName("exc.csv"))
+turnover.to_csv(GetFileName("turnover.csv"))
 from matplotlib import pyplot as plt
 import seaborn as sns
 sns.set_style("whitegrid")

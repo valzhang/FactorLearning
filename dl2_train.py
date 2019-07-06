@@ -35,9 +35,9 @@ GetFileName = lambda x: os.path.join(dl_path, x)
 
 # import data
 uni_name = '000300.SH'
-model_name = 'dl2_win.h5'
-use_short = False
-label_num = 2
+model_name = 'dl3_ls.h5'
+use_short = True
+label_num = 3
 from_date = 20060101
 to_date = 20190501
 train_last_date = 20180101
@@ -48,8 +48,8 @@ raw_df = pd.read_pickle(GetFileName('all_data.pkl'), compression='gzip').dropna(
 all_df = PoolFilter(data=raw_df, universe_name=uni_name, from_date=from_date, to_date=to_date)
 hs300_ret = pd.read_csv(GetFileName('INDEX_000300.SH_RETURN.csv' ), index_col=[0], header=None, names=['RETURN'])
 hs300 = (1+hs300_ret).rolling(20).apply(lambda x: x.prod()-1, raw=True).shift(-19).loc[from_date:to_date]
-# all_df['TAG'] =Ret2Tag(data=all_df, use_short=use_short)
-all_df['TAG'] = WinTage(data=all_df, index=hs300)
+all_df['TAG'] =Ret2Tag(data=all_df, use_short=use_short)
+# all_df['TAG'] = WinTage(data=all_df, index=hs300)
 train_data, train_label = LoadData(raw_data=all_df, from_date=from_date, to_date=train_last_date)
 val_data, val_label = LoadData(raw_data=all_df, from_date=train_last_date, to_date=to_date)
 # model init

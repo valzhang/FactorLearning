@@ -35,9 +35,9 @@ GetFileName = lambda x: os.path.join(dl_path, x)
 
 # import data
 uni_name = None
-model_name = 'dl3_win.h5'
-use_short = False
-label_num = 2
+model_name = 'dl3_ls.h5'
+use_short = True
+label_num = 3
 from_date = 20060101
 to_date = 20190501
 train_last_date = 20180101
@@ -48,8 +48,8 @@ raw_df = pd.read_pickle(GetFileName('all_data.pkl'), compression='gzip').dropna(
 all_df = PoolFilter(data=raw_df, universe_name=uni_name, from_date=from_date, to_date=to_date)
 zz500_ret = pd.read_csv(GetFileName('INDEX_000905.SH_RETURN.csv' ), index_col=[0], header=None, names=['RETURN'])
 zz500 = (1+zz500_ret).rolling(20).apply(lambda x: x.prod()-1, raw=True).shift(-19).loc[from_date:to_date]
-# all_df['TAG'] =Ret2Tag(data=all_df, use_short=use_short)
-all_df['TAG'] = WinTage(data=all_df, index=zz500)
+all_df['TAG'] =Ret2Tag(data=all_df, use_short=use_short)
+# all_df['TAG'] = WinTage(data=all_df, index=zz500)
 train_data, train_label = LoadData(raw_data=all_df, from_date=from_date, to_date=train_last_date)
 val_data, val_label = LoadData(raw_data=all_df, from_date=train_last_date, to_date=to_date)
 # model init
@@ -57,13 +57,13 @@ model = tf.keras.Sequential([
     # Adds a densely-connected layer with 64 units to the model:
     layers.Dense(factor_num, activation='relu'),
     # Add another:
-    layers.Dense(64, activation='relu'),
+    layers.Dense(256, activation='relu'),
     # Add a softmax layer with 10 output units:
-    layers.Dropout(0.2, noise_shape=None, seed=None),
-    layers.Dense(label_num, activation='softmax')])
+    # layers.Dropout(0.2, noise_shape=None, seed=None),
+    layers.Dense(label_num, activation='sigmoid')])
 
 # model compile
-model.compile(optimizer=tf.train.AdamOptimizer(0.001),
+model.compile(optimizer=tf.train.RMSPropOptimizer(0.001),
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 
